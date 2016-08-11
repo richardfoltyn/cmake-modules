@@ -1,4 +1,7 @@
-# - Find the MKL libraries (no includes)
+#.rst
+# FindMKL
+# -------
+#
 # This module defines
 #  MKL_LIBRARIES, the libraries needed to use Intel's implementation of BLAS & LAPACK.
 #  MKL_FOUND, If false, do not try to use MKL.
@@ -7,17 +10,28 @@
 ## https://software.intel.com/en-us/articles/a-new-linking-model-single-dynamic-library-mkl_rt-since-intel-mkl-103
 
 # Variables controlling FindMKL behavior:
+#
 #   MKL_RT:BOOL             Controls whether to return the "runtime"-version of MKL
+#
 #   MKL_INTERFACE:STRING    Either LP64 or IPL64; only applicable for 64-bit
 #                           builds if MKL_RT=OFF
+#
 #   MKL_THREADING:STRING    Threading model used. Valid values are
 #                           OpenMP, Sequential and TBB; only applicable if
 #                           MKL_RT=OFF
+#
 #   MKL_STATIC:BOOL         If ON, link against static MKL libraries
+#
+#   MKL_F95ROOT:STRING      Optional root directory where to look for
+#                           Fortran 95 components (not needed on Windows)
 #
 # COMPONENTS (optional):
 #   BLAS95                  Fortran 95 interface to BLAS library
 #   LAPACK95                Fortran 95 interface to LAPACK library
+# Note that components other than BLAS95 and LAPACK95 on Windows are not
+# shipped as pre-compiled libraries with MKL. Thus, they will not be found
+# unless MKL_F95ROOT points to the base directory where user-compiled version
+# of these libraries are located.
 
 
 # if none of the MKL_* variables are defined, assume MKL_RT=ON by default
@@ -94,9 +108,9 @@ if (MKL_RT)
   set(_NAMES mkl_rt)
   find_library(MKL_RT_LIBRARY
     NAMES ${_NAMES}
-    HINTS ${MKL_ROOT}
+    HINTS ${MKL_ROOT} ${MKL_F95ROOT}
     PATHS ${_MKL_PATHS}
-    PATH_SUFFIXES lib/${MKL_ARCH}
+    PATH_SUFFIXES lib/${MKL_ARCH} lib .
   )
 
   if (MKL_RT_LIBRARY)
@@ -148,9 +162,9 @@ else()
   foreach(_type INTERFACE CORE THREADING)
     find_library(MKL_${_type}_LIBRARY
       NAMES ${_${_type}_NAMES}
-      HINTS ${MKL_ROOT}
+      HINTS ${MKL_ROOT}  ${MKL_F95ROOT}
       PATHS ${_MKL_PATHS}
-      PATH_SUFFIXES lib/${MKL_ARCH}
+      PATH_SUFFIXES lib/${MKL_ARCH} lib .
     )
 
     set(MKL_LIBRARIES ${MKL_LIBRARIES} ${MKL_${_type}_LIBRARY})
@@ -210,9 +224,9 @@ foreach(_comp ${MKL_FIND_COMPONENTS})
 
   find_library(MKL_${_comp}_LIBRARY
     NAMES ${_name}
-    HINTS ${MKL_ROOT}
+    HINTS ${MKL_ROOT}  ${MKL_F95ROOT}
     PATHS ${_MKL_PATHS}
-    PATH_SUFFIXES lib/${MKL_ARCH}
+    PATH_SUFFIXES lib/${MKL_ARCH} lib .
   )
 
   # find include path for MOD files
@@ -221,9 +235,9 @@ foreach(_comp ${MKL_FIND_COMPONENTS})
 
   find_path(MKL_${_comp}_INCLUDE_DIR
     NAMES "${_name}.mod"
-    HINTS ${MKL_ROOT}
+    HINTS ${MKL_ROOT}  ${MKL_F95ROOT}
     PATHS ${_MKL_PATHS}
-    PATH_SUFFIXES include/${MKL_ARCH}/${_ifname} include/${MKL_ARCH} include
+    PATH_SUFFIXES include/${MKL_ARCH}/${_ifname} include/${MKL_ARCH} include .
   )
 
   if (MKL_${_comp}_LIBRARY AND MKL_${_comp}_INCLUDE_DIR)
