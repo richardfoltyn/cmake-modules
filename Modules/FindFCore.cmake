@@ -29,8 +29,10 @@ set(FCORE_NAME FCore)
 # sufficient to search for one mod file
 set(FCORE_MODFILES corelib_string.mod)
 
+string(TOLOWER "${FCORE_NAME}" _name)
+
 find_library(${FCORE_NAME}_LIBRARY
-    NAMES fcore
+    NAMES ${_name}
     PATHS
     ${FCORE_ROOT}
     ${HOME}
@@ -55,7 +57,7 @@ find_path(${FCORE_NAME}_INCLUDE_DIR NAMES ${FCORE_MODFILES}
     PATH_SUFFIXES
         include/${_INTEL_SUFFIX}
         ${_INTEL_SUFFIX}
-        ${FCORE_NAME}
+        ${_name}
         include
         .
 )
@@ -65,5 +67,5 @@ find_package_handle_standard_args(${FCORE_NAME} DEFAULT_MSG
     ${FCORE_NAME}_INCLUDE_DIR
 )
 
-set(${FCORE_NAME}_LIBRARIES ${FCORE_NAME}_LIBRARY)
-set(${FCORE_NAME}_INCLUDE_DIRS ${FCORE_NAME}_INCLUDE_DIR)
+set(${FCORE_NAME}_LIBRARIES ${${FCORE_NAME}_LIBRARY})
+set(${FCORE_NAME}_INCLUDE_DIRS ${${FCORE_NAME}_INCLUDE_DIR})
