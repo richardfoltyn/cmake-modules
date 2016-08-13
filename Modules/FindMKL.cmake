@@ -246,7 +246,7 @@ foreach(_comp ${MKL_FIND_COMPONENTS})
     set(MKL_${_comp}_FOUND TRUE)
     # optional libs should probably come first in link line
     set(MKL_LIBRARIES ${MKL_${_comp}_LIBRARY} ${MKL_LIBRARIES})
-    set(MKL_INCLUDE_DIRS ${MKL_${_comp}_INCLUDE} ${MKL_INCLUDE_DIRS})
+    set(MKL_INCLUDE_DIRS ${MKL_${_comp}_INCLUDE_DIR} ${MKL_INCLUDE_DIRS})
   else()
     set(MKL_${_comp}_FOUND FALSE)
   endif()
