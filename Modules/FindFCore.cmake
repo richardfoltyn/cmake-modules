@@ -36,7 +36,7 @@ find_library(${FCORE_NAME}_LIBRARY
     PATHS
     ${FCORE_ROOT}
     ${HOME}
-    ${HOME}/local/
+    ${HOME}/local
     ${HOME}/.local/
     /usr/local
     PATH_SUFFIXES
@@ -51,14 +51,15 @@ find_path(${FCORE_NAME}_INCLUDE_DIR NAMES ${FCORE_MODFILES}
     PATHS
     ${FCORE_ROOT}
     ${HOME}
-    ${HOME}/local
-    ${HOME}/.local
-    /usr/local/
+    ${HOME}/local/*/include
+    ${HOME}/local/include
+    ${HOME}/.local/*/include
+    ${HOME}/.local/include
+    /usr/local/*/include
+    /usr/local/include
     PATH_SUFFIXES
-        include/${_INTEL_SUFFIX}
-        ${_INTEL_SUFFIX}
+        ${_INTEL_SUFFIX}/${_name}
         ${_name}
-        include
         .
 )
 
