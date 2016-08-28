@@ -58,9 +58,13 @@ if (MKL_STATIC)
   endif ()
 endif()
 
-set(MKL_ROOT $ENV{MKLROOT} CACHE TYPE STRING)
-if(NOT MKL_ROOT)
-  set(MKL_ROOT "/opt/intel/mkl")
+# If MKLROOT environment variable is defined, use it in find_* functions
+set(MKL_ROOT_ENV "$ENV{MKLROOT}")
+if (MKL_ROOT_ENV)
+    set(MKL_ROOT "${MKL_ROOT_ENV}")
+else ()
+    # set it to some dummy value so we don't get syntax errors in find_* functions
+    set(MKL_ROOT_ENV "/opt/intel/mkl")
 endif()
 
 # hard-coded directories to be searched
@@ -108,15 +112,15 @@ if (MKL_RT)
   set(_NAMES mkl_rt)
   find_library(MKL_RT_LIBRARY
     NAMES ${_NAMES}
-    HINTS ${MKL_ROOT} ${MKL_F95ROOT}
+    HINTS ${MKL_ROOT_ENV} ${MKL_F95ROOT}
     PATHS ${_MKL_PATHS}
     PATH_SUFFIXES lib/${MKL_ARCH} lib .
   )
 
   if (MKL_RT_LIBRARY)
-    set (MKL_LIBRARIES ${MKL_LIBRARIES} ${MKL_RT_LIBRARY})
+    list(APPEND MKL_LIBRARIES "${MKL_RT_LIBRARY}")
   endif()
-else()
+else (MKL_RT)
   # No SDL interface requested, need specify interface/threading/core libraries
   # explicitly
 
@@ -162,27 +166,52 @@ else()
   foreach(_type INTERFACE CORE THREADING)
     find_library(MKL_${_type}_LIBRARY
       NAMES ${_${_type}_NAMES}
-      HINTS ${MKL_ROOT}  ${MKL_F95ROOT}
+      HINTS ${MKL_ROOT_ENV}  ${MKL_F95ROOT}
       PATHS ${_MKL_PATHS}
       PATH_SUFFIXES lib/${MKL_ARCH} lib .
     )
 
-    set(MKL_LIBRARIES ${MKL_LIBRARIES} ${MKL_${_type}_LIBRARY})
+    list(APPEND MKL_LIBRARIES "${MKL_${_type}_LIBRARY}")
   endforeach()
 
   # append tbb library if TBB threading model requested
   if (MKL_THREADING STREQUAL "TBB")
     find_library(MKL_TBB_LIBRARY
       NAMES tbb
-      HINTS ${MKL_ROOT}
+      HINTS ${MKL_ROOT_ENV}
       PATHS ${_MKL_PATHS}
       PATH_SUFFIXES lib/${MKL_ARCH}
     )
 
-    set(MKL_LIBRARIES ${MKL_LIBRARIES} ${MKL_TBB_LIBRARY})
-    set(MKL_THREADING_LIBRARY ${MKL_THREADING_LIBRARY} ${MKL_TBB_LIBRARY})
+    list(APPEND MKL_LIBRARIES "${MKL_TBB_LIBRARY}")
+    list(APPEND MKL_THREADING_LIBRARY "${MKL_TBB_LIBRARY}")
   endif()
 endif()
+
+################################################################################
+# MKL_ROOT variable
+# recover MKL_ROOT from library path found; use path of first library
+if (NOT MKL_ROOT AND MKL_LIBRARIES)
+    list(GET MKL_LIBRARIES 0 _tmp)
+    # make sure the library was found and does not contain -NOTFOUND
+    if (_tmp)
+        # string the last path components from library, ie something such as
+        # /lib/intel64_win/mkl_rt.lib to obtain the MKL root directory
+        string(REGEX REPLACE "[/\\]lib[/\\]([^/\\]+[/\\])?mkl_[^/\\]+$" ""
+            MKL_ROOT "${_tmp}"
+        )
+    endif ()
+endif ()
+
+# if MKL_ROOT still not found then give up
+if (NOT MKL_ROOT OR NOT IS_DIRECTORY "${MKL_ROOT}")
+    set(MKL_ROOT NOTFOUND)
+endif ()
+
+set(MKL_ROOT "${MKL_ROOT}" CACHE PATH "MKL root directory" FORCE)
+
+################################################################################
+# INCLUDE DIRECTORIES
 
 # base include/ directory in MKLROOT; this is not needed for Fortran without
 # using Fortran 95 wrappers, as then there are no MOD files to use
@@ -207,7 +236,7 @@ if (_HAS_C)
     PATH_SUFFIXES include
   )
 
-  set(MKL_INCLUDE_DIRS ${MKL_INCLUDE_DIRS} ${_MKL_INCLUDE_DIR})
+  list(APPEND MKL_INCLUDE_DIRS "${_MKL_INCLUDE_DIR}")
   mark_as_advanced(_MKL_INCLUDE_DIR)
 endif()
 
@@ -245,8 +274,8 @@ foreach(_comp ${MKL_FIND_COMPONENTS})
     # HANDLE_COMPONENTS to work
     set(MKL_${_comp}_FOUND TRUE)
     # optional libs should probably come first in link line
-    set(MKL_LIBRARIES ${MKL_${_comp}_LIBRARY} ${MKL_LIBRARIES})
-    set(MKL_INCLUDE_DIRS ${MKL_${_comp}_INCLUDE_DIR} ${MKL_INCLUDE_DIRS})
+    list(INSERT MKL_LIBRARIES 0 "${MKL_${_comp}_LIBRARY}")
+    list(INSERT MKL_INCLUDE_DIRS 0 "${MKL_${_comp}_INCLUDE_DIR}")
   else()
     set(MKL_${_comp}_FOUND FALSE)
   endif()
@@ -262,7 +291,7 @@ else()
 endif()
 
 find_package_handle_standard_args(MKL
-  REQUIRED_VARS MKL_LIBRARIES ${_INCLUDE_DIR_VAR}
+  REQUIRED_VARS MKL_ROOT MKL_LIBRARIES ${_INCLUDE_DIR_VAR}
   HANDLE_COMPONENTS
   FAIL_MESSAGE "Could not find MKL libraries: need to set MKLROOT environment variable?"
 )
