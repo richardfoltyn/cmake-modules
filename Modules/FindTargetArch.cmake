@@ -82,6 +82,8 @@ function(find_target_arch)
         set(TARGET_ARCH_BITS ${TARGET_ARCH_BITS}
             CACHE STRING "Target architecture, memomy bus width" FORCE)
 
+        mark_as_advanced(TARGET_ARCH_FOUND)
+
         if (NOT FIND_QUIETLY AND TARGET_ARCH_FOUND)
             message(STATUS "Detected target ARCH: ${TARGET_ARCH} bit")
         endif()
