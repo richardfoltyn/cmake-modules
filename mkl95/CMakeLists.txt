@@ -14,7 +14,7 @@
 
 cmake_minimum_required(VERSION 3.0)
 
-project(build_mkl95 Fortran)
+project(build_mkl95 C Fortran)
 
 ################################################################################
 # User-definable options
@@ -92,8 +92,6 @@ if (MKL_ILP64)
 
     set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${_FFLAGS}")
 endif ()
-
-
 
 ################################################################################
 # Components for which to build Fortran95 interfaces
