@@ -69,13 +69,19 @@ if (MKL_STATIC)
   endif ()
 endif()
 
-# If MKLROOT environment variable is defined, use it in find_* functions
-set(MKL_ROOT_ENV "$ENV{MKLROOT}")
-if (MKL_ROOT_ENV)
-    set(MKL_ROOT "${MKL_ROOT_ENV}")
-else ()
-    # set it to some dummy value so we don't get syntax errors in find_* functions
-    set(MKL_ROOT_ENV "/opt/intel/mkl")
+# If -DMKL_ROOT=/path/to/mkl was passed to cmake, use this as the MKL root
+# directory. Otherwise, try to use the MKLROOT environment variable if defined.
+if (NOT MKL_ROOT)
+    set(MKL_ROOT_TRY "$ENV{MKLROOT}")
+    if (MKL_ROOT_TRY)
+        set(MKL_ROOT "${MKL_ROOT_TRY}")
+    else ()
+        # set it to some dummy value so we don't get syntax errors in find_*
+        # functions
+        set(MKL_ROOT_TRY "/opt/intel/mkl")
+    endif ()
+else()
+    set(MKL_ROOT_TRY "${MKL_ROOT}")
 endif()
 
 if (NOT MKL_F95ROOT)
@@ -133,10 +139,11 @@ if (IS_AMD64)
         set(LP_SUFFIX "_lp64")
     endif()
 
-    if (IS_INTEL OR IS_PGI)
-        set(COMP_SUFFIX "_intel")
-    elseif (IS_GFORTRAN)
+    # gfortran not supported on Windows
+    if (IS_GFORTRAN AND NOT WIN32)
         set(COMP_SUFFIX "_gf")
+    else ()
+        set(COMP_SUFFIX "_intel")
     endif ()
 else ()
     if (WIN32)
@@ -163,7 +170,7 @@ if (MKL_RT)
   set(_NAMES mkl_rt)
   find_library(MKL_RT_LIBRARY
     NAMES ${_NAMES}
-    HINTS ${MKL_ROOT_ENV}
+    HINTS ${MKL_ROOT_TRY}
     PATHS ${_MKL_PATHS}
     PATH_SUFFIXES ${LIB_PATH_SUFFIXES}
   )
@@ -209,7 +216,7 @@ else (MKL_RT)
   foreach(_type INTERFACE CORE THREADING)
     find_library(MKL_${_type}_LIBRARY
       NAMES ${_${_type}_NAMES}
-      HINTS ${MKL_ROOT_ENV}
+      HINTS ${MKL_ROOT_TRY}
       PATHS ${_MKL_PATHS}
       PATH_SUFFIXES ${LIB_PATH_SUFFIXES}
     )
@@ -221,7 +228,7 @@ else (MKL_RT)
   if (MKL_THREADING STREQUAL "TBB")
     find_library(MKL_TBB_LIBRARY
       NAMES tbb
-      HINTS ${MKL_ROOT_ENV}
+      HINTS ${MKL_ROOT_TRY}
       PATHS ${_MKL_PATHS}
       PATH_SUFFIXES lib/${MKL_ARCH}
     )
@@ -230,8 +237,6 @@ else (MKL_RT)
     list(APPEND MKL_THREADING_LIBRARY "${MKL_TBB_LIBRARY}")
   endif()
 endif()
-
-message("MKL_LIBRARIES: ${MKL_LIBRARIES}")
 
 find_package_handle_standard_args(MKL DEFAULT_MSG MKL_LIBRARIES)
 
@@ -319,6 +324,7 @@ macro(mkl95_compile _file)
         CMAKE_FLAGS
             "-DINCLUDE_DIRECTORIES=${MKL_${_comp}_INCLUDE_DIR}"
     )
+    # message("*** try_compile result: ${_result}")
 endmacro()
 
 # Components: MKL_FIND_COMPONENTS contains both required and optional components
