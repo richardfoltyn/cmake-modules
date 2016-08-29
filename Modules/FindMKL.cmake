@@ -315,15 +315,16 @@ if (_HAS_C)
 endif()
 
 # macro to test whether compiling against Fortran 95 library works
-macro(mkl95_compile _file)
+macro(mkl95_compile _var _file)
     message(STATUS "Checking whether linking to ${_comp} works")
-    try_compile(${_comp}_WORKS "${CMAKE_BINARY_DIR}/tmp/FindMKL/"
+    try_compile(${_var} "${CMAKE_BINARY_DIR}/tmp/FindMKL/"
         "${CMAKE_CURRENT_LIST_DIR}/${_file}"
         LINK_LIBRARIES ${_TRY_LIBRARIES}
         OUTPUT_VARIABLE _result
         CMAKE_FLAGS
             "-DINCLUDE_DIRECTORIES=${MKL_${_comp}_INCLUDE_DIR}"
     )
+    set(${_var} ${${_var}} CACHE INTERNAL "Whether MKL component works")
     # message("*** try_compile result: ${_result}")
 endmacro()
 
@@ -357,24 +358,26 @@ if (MKL_FOUND)
                 include/${MKL_ARCH}/${_ifname} include/${MKL_ARCH} include .
         )
 
+        # Check whether linking against Fortran 95 library works, if we have
+        # not yet done so
         if (MKL_${_comp}_LIBRARY AND MKL_${_comp}_INCLUDE_DIR)
-            # attempt to compile against F95 library
+            if (NOT MKL_${_comp}_WORKS)
+                unset(_TRY_LIBRARIES)
+                list(APPEND _TRY_LIBRARIES ${MKL_${_comp}_LIBRARY})
+                list(APPEND _TRY_LIBRARIES ${MKL_LIBRARIES})
 
-            unset(_TRY_LIBRARIES)
-            list(APPEND _TRY_LIBRARIES ${MKL_${_comp}_LIBRARY})
-            list(APPEND _TRY_LIBRARIES ${MKL_LIBRARIES})
-
-            if (${_name} STREQUAL "blas95")
-                mkl95_compile("blas95.f90")
-            elseif (${_name} STREQUAL "lapack95")
-                mkl95_compile("lapack95.f90")
-            else ()
-                set(${_comp}_WORK TRUE)
+                if (${_name} STREQUAL "blas95")
+                    mkl95_compile(MKL_${_comp}_WORKS "blas95.f90")
+                elseif (${_name} STREQUAL "lapack95")
+                    mkl95_compile(MKL_${_comp}_WORKS "lapack95.f90")
+                else ()
+                    set(MKL_${_comp}_WORKS TRUE)
+                endif ()
             endif ()
 
             # FPHSA function expects the *_FOUND variables to be properly defined for
             # HANDLE_COMPONENTS to work
-            if (${_comp}_WORKS)
+            if (MKL_${_comp}_WORKS)
                 set(MKL_${_comp}_FOUND TRUE)
                 # optional libs should probably come first in link line
                 list(INSERT MKL_LIBRARIES 0 "${MKL_${_comp}_LIBRARY}")
