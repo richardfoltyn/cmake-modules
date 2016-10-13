@@ -87,7 +87,7 @@ endif()
 if (NOT MKL_F95ROOT)
     # TRY to use environment variable F95ROOT which is mentioned in Intel's
     # link advisor
-    set(MKL_F95ROOT_ENV "$ENV{F95ROOT}")
+    set(MKL_F95ROOT "$ENV{F95ROOT}")
 endif ()
 
 # hard-coded directories to be searched
