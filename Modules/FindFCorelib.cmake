@@ -1,12 +1,12 @@
 # Findfcore.cmake
-# Attempts to find local installation of Fortran corelib (fcore) library
+# Attempts to find local installation of Fortran corelib (fcorelib) library
 # Usage:
-#   find_package(FCore)
+#   find_package(FCorelib)
 #
 # Upon successful completion defines the following cached variables:
-#   FCore_FOUND : TRUE if fcore fcore
-#   FCore_INCLUDE_DIRS : include directories for compiled module files
-#   FCore_LIBRARIES : fcore library paths
+#   FCorelib_FOUND : TRUE if fcore fcore
+#   FCorelib_INCLUDE_DIRS : include directories for compiled module files
+#   FCorelib_LIBRARIES : fcore library paths
 
 if (WIN32)
     set(HOME $ENV{USERPROFILE})
@@ -25,16 +25,16 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
     endif()
 endif()
 
-set(FCORE_NAME FCore)
+set(FCORELIB_NAME FCorelib)
 # sufficient to search for one mod file
-set(FCORE_MODFILES corelib_string.mod)
+set(FCORELIB_MODFILES corelib_version_mod.mod)
 
-string(TOLOWER "${FCORE_NAME}" _name)
+string(TOLOWER "${FCORELIB_NAME}" _name)
 
-find_library(${FCORE_NAME}_LIBRARY
+find_library(${FCORELIB_NAME}_LIBRARY
     NAMES ${_name}
     PATHS
-    ${FCORE_ROOT}
+    ${FCORELIB_ROOT}
     ${HOME}
     ${HOME}/local
     ${HOME}/.local/
@@ -47,9 +47,9 @@ find_library(${FCORE_NAME}_LIBRARY
         .
 )
 
-find_path(${FCORE_NAME}_INCLUDE_DIR NAMES ${FCORE_MODFILES}
+find_path(${FCORELIB_NAME}_INCLUDE_DIR NAMES ${FCORELIB_MODFILES}
     PATHS
-    ${FCORE_ROOT}
+    ${FCORELIB_ROOT}
     ${HOME}
     ${HOME}/local/*/include
     ${HOME}/local/include
@@ -63,10 +63,10 @@ find_path(${FCORE_NAME}_INCLUDE_DIR NAMES ${FCORE_MODFILES}
         .
 )
 
-find_package_handle_standard_args(${FCORE_NAME} DEFAULT_MSG
-    ${FCORE_NAME}_LIBRARY
-    ${FCORE_NAME}_INCLUDE_DIR
+find_package_handle_standard_args(${FCORELIB_NAME} DEFAULT_MSG
+    ${FCORELIB_NAME}_LIBRARY
+    ${FCORELIB_NAME}_INCLUDE_DIR
 )
 
-set(${FCORE_NAME}_LIBRARIES ${${FCORE_NAME}_LIBRARY})
-set(${FCORE_NAME}_INCLUDE_DIRS ${${FCORE_NAME}_INCLUDE_DIR})
+set(${FCORELIB_NAME}_LIBRARIES ${${FCORELIB_NAME}_LIBRARY})
+set(${FCORELIB_NAME}_INCLUDE_DIRS ${${FCORELIB_NAME}_INCLUDE_DIR})
