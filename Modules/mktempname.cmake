@@ -4,10 +4,13 @@ function(mktempname fname)
     else ()
         set(_suffix ".tmp")
     endif ()
+
     if (ARGC GREATER 1)
         set(_prefix "${ARGV1}")
     else ()
-        set(_prefix ".cmake")
+        # Note: do not use file name with leading dot by default, as this
+        # will break CMake's try_compile() with some generators
+        set(_prefix "cmake")
     endif ()
 
     set(_counter 0)
