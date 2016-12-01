@@ -19,6 +19,9 @@
 #
 #   Fortran_DEFAULT_REAL_KIND        Default real kind
 #   Fortran_DEFAULT_REAL_SIZE        Bit size of default real
+#
+#   Fortran_SUPPORTED_INTS          List of bit sizes of supported integers
+#   Fortran_SUPPORTED_REALS         List of bit sizes of supported reals
 
 include(mktempname)
 
@@ -74,8 +77,8 @@ function(check_Fortran_kinds)
                 endif()
 
                 if (_size STREQUAL _default_size)
-                    set(Fortran_INT_DEFAULT_KIND ${_kind} CACHE INTERNAL "" FORCE)
-                    set(Fortran_INT_DEFAULT_SIZE ${_size} CACHE INTERNAL "" FORCE)
+                    set(Fortran_DEFAULT_INT_KIND ${_kind} CACHE INTERNAL "" FORCE)
+                    set(Fortran_DEFAULT_INT_SIZE ${_size} CACHE INTERNAL "" FORCE)
                 endif()
             endif()
 
@@ -90,7 +93,7 @@ function(check_Fortran_kinds)
             else()
                 set(_msg "${_size}")
             endif()
-            if (_size STREQUAL Fortran_INT_DEFAULT_SIZE)
+            if (_size STREQUAL Fortran_DEFAULT_INT_SIZE)
                 set(_msg "${_msg} (default)")
             endif()
         endforeach()
@@ -145,8 +148,8 @@ function(check_Fortran_kinds)
                 endif()
 
                 if (_prec STREQUAL _default_prec)
-                    set(Fortran_REAL_DEFAULT_KIND ${_kind} CACHE INTERNAL "" FORCE)
-                    set(Fortran_REAL_DEFAULT_SIZE ${_size} CACHE INTERNAL "" FORCE)
+                    set(Fortran_DEFAULT_REAL_KIND ${_kind} CACHE INTERNAL "" FORCE)
+                    set(Fortran_DEFAULT_REAL_SIZE ${_size} CACHE INTERNAL "" FORCE)
                 endif()
             endif()
 
@@ -163,7 +166,7 @@ function(check_Fortran_kinds)
             else()
                 set(_msg "${_size}")
             endif()
-            if (_size STREQUAL Fortran_REAL_DEFAULT_SIZE)
+            if (_size STREQUAL Fortran_DEFAULT_REAL_SIZE)
                 set(_msg "${_msg} (default)")
             endif()
         endforeach()
