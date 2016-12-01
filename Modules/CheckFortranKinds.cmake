@@ -34,7 +34,7 @@ function(check_Fortran_kinds)
     set(SELECTED_INT_SIZE64 12)
     set(SELECTED_INT_SIZE128 20)
 
-    if (NOT DEFINED Fortran_SUPPORTS_INT8)
+    if (NOT DEFINED Fortran_SUPPORTED_INTS)
         unset(_SUPPORTED)
         foreach(_size IN LISTS BITSIZE)
             set(SOURCE_CODE
@@ -105,7 +105,7 @@ function(check_Fortran_kinds)
     set(SELECTED_REAL_PREC64 15)
     set(SELECTED_REAL_PREC128 33)
 
-    if (NOT DEFINED Fortran_SUPPORTS_REAL16)
+    if (NOT DEFINED Fortran_SUPPORTED_REALS)
         unset(_SUPPORTED)
         foreach(_size IN LISTS BITSIZE)
             set(SOURCE_CODE
