@@ -11,7 +11,7 @@
 
 include(mktempname)
 
-function(check_Fortran_PDT_support)
+function(check_Fortran_PDT)
     set(SOURCE_CODE_KIND
         "
         program pdt_test
@@ -48,7 +48,7 @@ function(check_Fortran_PDT_support)
         try_compile(_SUPPORTS_PDT ${CMAKE_BINARY_DIR} "${_TEMPFILE}")
         file (REMOVE "${_TEMPFILE}")
 
-        set(Fortran_SUPPORTS_PDT_KIND ${_SUPPORTS_PDT} CACHE BOOL "")
+        set(Fortran_SUPPORTS_PDT_KIND ${_SUPPORTS_PDT} CACHE INTERNAL "")
         mark_as_advanced(Fortran_SUPPORTS_PDT_KIND)
 
         message(STATUS
@@ -62,7 +62,7 @@ function(check_Fortran_PDT_support)
         try_compile(_SUPPORTS_PDT ${CMAKE_BINARY_DIR} "${_TEMPFILE}")
         file (REMOVE "${_TEMPFILE}")
 
-        set(Fortran_SUPPORTS_PDT_LEN ${_SUPPORTS_PDT} CACHE BOOL "")
+        set(Fortran_SUPPORTS_PDT_LEN ${_SUPPORTS_PDT} CACHE INTERNAL "")
         mark_as_advanced(Fortran_SUPPORTS_PDT_LEN)
 
         message(STATUS

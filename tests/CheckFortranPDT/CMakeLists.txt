@@ -6,4 +6,4 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../../Modules")
 
 include(CheckFortranPDT)
 
-check_Fortran_PDT_support()
+check_Fortran_PDT()

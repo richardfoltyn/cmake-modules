@@ -1,17 +1,28 @@
-# CheckFortranPDT
-# Check whether Fortran compiler suppors Parametrized Derived Types (PDT)
-# After calling the function check_Fortran_PDT_support(), the following
+# CheckFortranKinds
+#
+# Check which integer and real kinds are supported by Fortran compiler.
+# After calling the function check_Fortran_kinds(), the following
 # cached variables will be set:
 #
-#   Fortran_SUPPORTS_PDT_KIND       True if compiler supports KIND parameters.
-#   Fortran_SUPPORTS_PDT_LEN        True if compiler supports LEN parameters.
+#   Fortran_SUPPORTS_INTxxx         True if compiler supports integers with
+#                                   bit size xxx (6, 16, 32, 64, 128)
+#   Fortran_SUPPORTS_REAlxxx        True if compiler supports floating point
+#                                   numbers of {32,64,128} bits.
 #
-# Note that both KIND and LEN parameters are part of the Fortran 2003 standard,
-# but some compilers implement none, one or both paratemer variants.
+#   Fortran_INTxxx_KIND             Integer kind parameter that corresponds
+#                                   to bit size xxx.
+#   Fortran_REALxxx_KIND            Integer kind parameter that corresponds
+#                                   to real of xxx bits.
+#
+#   Fortran_DEFAULT_INT_KIND        Default integer kind
+#   Fortran_DEFAULT_INT_SIZE        Bit size of default integer.
+#
+#   Fortran_DEFAULT_REAL_KIND        Default real kind
+#   Fortran_DEFAULT_REAL_SIZE        Bit size of default real
 
 include(mktempname)
 
-function(check_Fortran_supported_kinds)
+function(check_Fortran_kinds)
 
 
     list(APPEND BITSIZE 8 16 32 64 128)
@@ -47,7 +58,7 @@ function(check_Fortran_supported_kinds)
             file (REMOVE "${_TEMPFILE}")
 
             set(_var Fortran_SUPPORTS_INT${_size})
-            set(${_var} FALSE CACHE BOOL "" FORCE)
+            set(${_var} FALSE CACHE INTERNAL "" FORCE)
 
             if (_compile_result)
                 # parse output for real kind and precision
@@ -59,19 +70,19 @@ function(check_Fortran_supported_kinds)
                 if (_size STREQUAL ${_size})
                     set(${_var} TRUE CACHE BOOL "" FORCE)
                     list(APPEND _SUPPORTED ${_size})
-                    set(Fortran_INT${_size}_KIND ${_kind} CACHE STRING "" FORCE)
+                    set(Fortran_INT${_size}_KIND ${_kind} CACHE INTERNAL "" FORCE)
                 endif()
 
                 if (_size STREQUAL _default_size)
-                    set(Fortran_INT_DEFAULT_KIND ${_kind} CACHE STRING "" FORCE)
-                    set(Fortran_INT_DEFAULT_SIZE ${_size} CACHE STRING "" FORCE)
+                    set(Fortran_INT_DEFAULT_KIND ${_kind} CACHE INTERNAL "" FORCE)
+                    set(Fortran_INT_DEFAULT_SIZE ${_size} CACHE INTERNAL "" FORCE)
                 endif()
             endif()
 
             mark_as_advanced(${_var})
         endforeach()
 
-        set(Fortran_SUPPORTED_INTS ${_SUPPORTED} CACHE STRING "" FORCE)
+        set(Fortran_SUPPORTED_INTS ${_SUPPORTED} CACHE INTERNAL "" FORCE)
         unset(_msg)
         foreach (_size IN LISTS _SUPPORTED)
             if (_msg)
@@ -118,7 +129,7 @@ function(check_Fortran_supported_kinds)
             file (REMOVE "${_TEMPFILE}")
 
             set(_var Fortran_SUPPORTS_REAL${_size})
-            set(${_var} FALSE CACHE BOOL "" FORCE)
+            set(${_var} FALSE CACHE INTERNAL "" FORCE)
 
             if (_compile_result)
                 # parse output for real kind and precision
@@ -130,12 +141,12 @@ function(check_Fortran_supported_kinds)
                 if (_prec STREQUAL ${SELECTED_REAL_PREC${_size}})
                     set(${_var} TRUE CACHE BOOL "" FORCE)
                     list(APPEND _SUPPORTED ${_size})
-                    set(Fortran_REAL${_size}_KIND ${_kind} CACHE STRING "" FORCE)
+                    set(Fortran_REAL${_size}_KIND ${_kind} CACHE INTERNAL "" FORCE)
                 endif()
 
                 if (_prec STREQUAL _default_prec)
-                    set(Fortran_REAL_DEFAULT_KIND ${_kind} CACHE STRING "" FORCE)
-                    set(Fortran_REAL_DEFAULT_SIZE ${_size} CACHE STRING "" FORCE)
+                    set(Fortran_REAL_DEFAULT_KIND ${_kind} CACHE INTERNAL "" FORCE)
+                    set(Fortran_REAL_DEFAULT_SIZE ${_size} CACHE INTERNAL "" FORCE)
                 endif()
             endif()
 
@@ -143,7 +154,7 @@ function(check_Fortran_supported_kinds)
 
         endforeach()
 
-        set(Fortran_SUPPORTED_REALS ${_SUPPORTED} CACHE STRING "" FORCE)
+        set(Fortran_SUPPORTED_REALS ${_SUPPORTED} CACHE INTERNAL "" FORCE)
 
         unset(_msg)
         foreach (_size IN LISTS _SUPPORTED)

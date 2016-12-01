@@ -4,6 +4,6 @@ project(test_kinds Fortran)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/../../Modules")
 
-include(CheckFortranSupportedKinds)
+include(CheckFortranKinds)
 
-check_Fortran_supported_kinds()
+check_Fortran_kinds()
