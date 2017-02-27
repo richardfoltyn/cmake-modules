@@ -1,22 +1,23 @@
+# Test FindMKL with sequential threading and LP64 interface
 
 get_filename_component(_dir "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
 message("=== Processing directory ${_dir} ===")
 
-find_package(MKL REQUIRED COMPONENTS RT)
+find_package(MKL REQUIRED COMPONENTS SEQUENTIAL LP64)
 
 message(STATUS "MKL_FOUND: ${MKL_FOUND}")
-message(STATUS "MKL_RT_FOUND: ${MKL_FOUND}")
 message(STATUS "MKL_ROOT: ${MKL_ROOT}")
+message(STATUS "MKL_SEQUENTIAL_FOUND: ${MKL_SEQUENTIAL_FOUND}")
+message(STATUS "MKL_LP64_FOUND: ${MKL_LP64_FOUND}")
 message(STATUS "MKL_LIBRARIES: ${MKL_LIBRARIES}")
 if (MKL_INCLUDE_DIRS)
-  message(STATUS "MKL_INCLUDE_DIRS: ${MKL_INCLUDE_DIRS}")
+  message("MKL_INCLUDE_DIRS: ${MKL_INCLUDE_DIRS}")
 endif()
 
 set(SOURCE_FILES ../mkltest.f90)
 
-include_directories(${MKL_INCLUDE_DIRS})
-
 set(_target ${_dir})
+include_directories(${MKL_INCLUDE_DIRS})
 add_executable(${_target} ${SOURCE_FILES})
 target_link_libraries(${_target} ${MKL_LIBRARIES})
 

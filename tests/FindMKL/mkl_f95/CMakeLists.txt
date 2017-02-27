@@ -2,17 +2,16 @@
 get_filename_component(_dir "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
 message("=== Processing directory ${_dir} ===")
 
-find_package(MKL REQUIRED COMPONENTS RT)
+find_package(MKL COMPONENTS BLAS95 LAPACK95)
 
 message(STATUS "MKL_FOUND: ${MKL_FOUND}")
-message(STATUS "MKL_RT_FOUND: ${MKL_FOUND}")
 message(STATUS "MKL_ROOT: ${MKL_ROOT}")
 message(STATUS "MKL_LIBRARIES: ${MKL_LIBRARIES}")
 if (MKL_INCLUDE_DIRS)
   message(STATUS "MKL_INCLUDE_DIRS: ${MKL_INCLUDE_DIRS}")
 endif()
 
-set(SOURCE_FILES ../mkltest.f90)
+set(SOURCE_FILES ../mkltest95.f90)
 
 include_directories(${MKL_INCLUDE_DIRS})
 
