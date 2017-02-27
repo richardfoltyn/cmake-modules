@@ -197,6 +197,12 @@ else ()
     set(MKL_THREADING_NAME SEQUENTIAL)
 endif ()
 
+if (MKL_STATIC)
+    set(MKL_LINK_TYPE "STATIC")
+else ()
+    set(MKL_LINK_TYPE "DLL")
+endif ()
+
 
 ################################################################################
 # Determine library name suffixes which depend on the compiler and MKL
@@ -289,15 +295,15 @@ else (MKL_RT)
 
     # MKL interface library
     set(_INTERFACE_NAMES "mkl${_INTERFACE_SUFFIX}${_WIN32_DLL_SUFFIX}")
-    find_library(MKL_${MKL_INTERFACE_NAME}_LIBRARY
+    find_library(MKL_${MKL_INTERFACE_NAME}_${MKL_LINK_TYPE}_LIBRARY
         NAMES ${_INTERFACE_NAMES}
         HINTS ${MKL_ROOT_TRY}
         PATHS ${_MKL_PATHS}
         PATH_SUFFIXES ${LIB_PATH_SUFFIXES}
     )
-    list(APPEND MKL_LIBRARY "${MKL_${MKL_INTERFACE_NAME}_LIBRARY}")
+    list(APPEND MKL_LIBRARY "${MKL_${MKL_INTERFACE_NAME}_${MKL_LINK_TYPE}_LIBRARY}")
 
-    if (MKL_${MKL_INTERFACE_NAME}_LIBRARY)
+    if (MKL_${MKL_INTERFACE_NAME}_${MKL_LINK_TYPE}_LIBRARY)
         set(MKL_${MKL_INTERFACE_NAME}_FOUND TRUE)
     else ()
         set(MKL_${MKL_INTERFACE_NAME}_FOUND FALSE)
@@ -306,13 +312,13 @@ else (MKL_RT)
 
     # MKL core library
     set(_CORE_NAMES "mkl_core${_WIN32_DLL_SUFFIX}")
-    find_library(MKL_CORE_LIBRARY
+    find_library(MKL_CORE_${MKL_LINK_TYPE}_LIBRARY
         NAMES ${_CORE_NAMES}
         HINTS ${MKL_ROOT_TRY}
         PATHS ${_MKL_PATHS}
         PATH_SUFFIXES ${LIB_PATH_SUFFIXES}
     )
-    list(APPEND MKL_LIBRARY "${MKL_CORE_LIBRARY}")
+    list(APPEND MKL_LIBRARY "${MKL_CORE_${MKL_LINK_TYPE}_LIBRARY}")
 
     # MKL threading library
     if (MKL_THREADING_OPENMP)
@@ -323,16 +329,16 @@ else (MKL_RT)
         set(_THREADING_NAMES "mkl_sequential${_WIN32_DLL_SUFFIX}")
     endif ()
 
-    find_library(MKL_${MKL_THREADING_NAME}_LIBRARY
+    find_library(MKL_${MKL_THREADING_NAME}_${MKL_LINK_TYPE}_LIBRARY
         NAMES ${_THREADING_NAMES}
         HINTS ${MKL_ROOT_TRY}
         PATHS ${_MKL_PATHS}
         PATH_SUFFIXES ${LIB_PATH_SUFFIXES}
     )
 
-    list(APPEND MKL_LIBRARY "${MKL_${MKL_THREADING_NAME}_LIBRARY}")
+    list(APPEND MKL_LIBRARY "${MKL_${MKL_THREADING_NAME}_${MKL_LINK_TYPE}_LIBRARY}")
 
-    if (MKL_${MKL_THREADING_NAME}_LIBRARY)
+    if (MKL_${MKL_THREADING_NAME}_${MKL_LINK_TYPE}_LIBRARY)
         set(MKL_${MKL_THREADING_NAME}_FOUND TRUE)
     else ()
         set(MKL_${MKL_THREADING_NAME}_FOUND FALSE)
@@ -345,18 +351,20 @@ else (MKL_RT)
         else ()
             set(_OMP_RTL_NAME iomp5)
         endif()
-        
-        _mkl_root(MKL_${MKL_THREADING_NAME}_LIBRARY _tmp)
+
+        _mkl_root(MKL_${MKL_THREADING_NAME}_${MKL_LINK_TYPE}_LIBRARY _tmp)
         # strip trailing /mkl from _tmp
         get_filename_component(_tmp2 "${_tmp}" DIRECTORY)
         get_filename_component(_tmp3 "${MKL_ROOT_TRY}" DIRECTORY)
-        
+
         # append OpenMP runtime library
+        # Do not bother with static vs. dynamic, OpenMP RTL should probably
+        # be linked dynamically.
         find_library(MKL_FIND_OPENMP_RTL
             NAMES ${_OMP_RTL_NAME}
             HINTS ${_tmp2} ${_tmp3}
             PATHS /opt/intel
-            PATH_SUFFIXES lib/${MKL_ARCH} lib/${MKL_ARCH}_lin
+            PATH_SUFFIXES lib/${MKL_ARCH}
         )
         list(APPEND _MKL_DEP_LIBRARIES "${MKL_FIND_OPENMP_RTL}")
     elseif (MKL_THREADING_TBB)
@@ -419,19 +427,19 @@ unset(MKL_INCLUDE_DIRS)
 
 # base include/ directory in MKLROOT; this is not needed for Fortran without
 # using Fortran 95 wrappers, as then there are no MOD files to use
-get_property(_LANGUAGES_ GLOBAL PROPERTY ENABLED_LANGUAGES)
+# get_property(_LANGUAGES_ GLOBAL PROPERTY ENABLED_LANGUAGES)
 # CMake does not seem to match regex on word boundary, so process each language
 # in turn to avoid matching "RC"
-set(_HAS_C FALSE)
-set(_HAS_FORTRAN FALSE)
-foreach(_lang IN LISTS _LANGUAGES_)
-    string(TOUPPER ${_lang} _lang)
-    if (_lang STREQUAL "C" OR _lang STREQUAL "CXX")
-        set(_HAS_C TRUE)
-    elseif (_lang STREQUAL "FORTRAN")
-        set(_HAS_FORTRAN TRUE)    
-    endif()
-endforeach()
+# set(_HAS_C FALSE)
+# set(_HAS_FORTRAN FALSE)
+# foreach(_lang IN LISTS _LANGUAGES_)
+#     string(TOUPPER ${_lang} _lang)
+#     if (_lang STREQUAL "C" OR _lang STREQUAL "CXX")
+#         set(_HAS_C TRUE)
+#     elseif (_lang STREQUAL "FORTRAN")
+#         set(_HAS_FORTRAN TRUE)
+#     endif()
+# endforeach()
 
 # Look for include files that should be around if either C++ or Fortran
 # version of MKL was installed.
