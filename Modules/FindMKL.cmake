@@ -232,6 +232,21 @@ endif ()
 set(_INTERFACE_SUFFIX "${COMP_SUFFIX}${LP_SUFFIX}")
 
 ################################################################################
+# Utility function to convert path to MKL library into MLK root directoy
+function(_mkl_root _path _var)
+    list(GET ${_path} 0 _tmp)
+    # make sure the library was found and does not contain -NOTFOUND
+    if (_tmp)
+        # strip the last path components from library, ie something such as
+        # /lib/intel64_win/mkl_rt.lib to obtain the MKL root directory
+        string(REGEX REPLACE "[/\\]lib[/\\]([^/\\]+[/\\])?[^/\\]+$" ""
+            _tmp2 "${_tmp}"
+        )
+    endif ()
+    set(${_var} "${_tmp2}" PARENT_SCOPE)
+endfunction()
+
+################################################################################
 # Locate MKL libraries
 unset(MKL_LIBRARY)
 unset(MKL_LIBRARIES)
@@ -328,12 +343,20 @@ else (MKL_RT)
         if (WIN32)
             set(_OMP_RTL_NAME libiomp5md)
         else ()
-            set(_OMP_RTL_NAME liomp5)
+            set(_OMP_RTL_NAME iomp5)
         endif()
-
+        
+        _mkl_root(MKL_${MKL_THREADING_NAME}_LIBRARY _tmp)
+        # strip trailing /mkl from _tmp
+        get_filename_component(_tmp2 "${_tmp}" DIRECTORY)
+        get_filename_component(_tmp3 "${MKL_ROOT_TRY}" DIRECTORY)
+        
         # append OpenMP runtime library
         find_library(MKL_FIND_OPENMP_RTL
             NAMES ${_OMP_RTL_NAME}
+            HINTS ${_tmp2} ${_tmp3}
+            PATHS /opt/intel
+            PATH_SUFFIXES lib/${MKL_ARCH} lib/${MKL_ARCH}_lin
         )
         list(APPEND _MKL_DEP_LIBRARIES "${MKL_FIND_OPENMP_RTL}")
     elseif (MKL_THREADING_TBB)
@@ -376,17 +399,9 @@ endif ()
 ################################################################################
 # MKL_ROOT variable
 # recover MKL_ROOT from library path found; use path of first library
-if (MKL_FOUND)
+if (MKL_FOUND AND NOT MKL_ROOT)
     if (NOT MKL_ROOT AND MKL_LIBRARY)
-        list(GET MKL_LIBRARY 0 _tmp)
-        # make sure the library was found and does not contain -NOTFOUND
-        if (_tmp)
-            # string the last path components from library, ie something such as
-            # /lib/intel64_win/mkl_rt.lib to obtain the MKL root directory
-            string(REGEX REPLACE "[/\\]lib[/\\]([^/\\]+[/\\])?mkl_[^/\\]+$" ""
-                MKL_ROOT "${_tmp}"
-            )
-        endif ()
+        _mkl_root(MKL_LIBRARY MKL_ROOT)
     endif ()
 
     # if MKL_ROOT still not found then give up
@@ -408,25 +423,27 @@ get_property(_LANGUAGES_ GLOBAL PROPERTY ENABLED_LANGUAGES)
 # CMake does not seem to match regex on word boundary, so process each language
 # in turn to avoid matching "RC"
 set(_HAS_C FALSE)
+set(_HAS_FORTRAN FALSE)
 foreach(_lang IN LISTS _LANGUAGES_)
-  if (NOT _HAS_C)
-    STRING(TOUPPER ${_lang} _lang)
+    string(TOUPPER ${_lang} _lang)
     if (_lang STREQUAL "C" OR _lang STREQUAL "CXX")
-      set(_HAS_C TRUE)
+        set(_HAS_C TRUE)
+    elseif (_lang STREQUAL "FORTRAN")
+        set(_HAS_FORTRAN TRUE)    
     endif()
-  endif()
 endforeach()
 
-if (_HAS_C)
-  find_path(MKL_INCLUDE_DIR
-    NAMES mkl.h
+# Look for include files that should be around if either C++ or Fortran
+# version of MKL was installed.
+find_path(MKL_INCLUDE_DIR
+    NAMES mkl.h mkl.fi
     HINTS ${MKL_ROOT}
     PATHS ${_MKL_PATHS}
     PATH_SUFFIXES include
-  )
+)
 
-  list(APPEND MKL_INCLUDE_DIRS "${MKL_INCLUDE_DIR}")
-endif()
+list(APPEND MKL_INCLUDE_DIRS "${MKL_INCLUDE_DIR}")
+
 
 # macro to test whether compiling against Fortran 95 library works
 macro(mkl95_compile _var _file _libs)
