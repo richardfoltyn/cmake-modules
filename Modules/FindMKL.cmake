@@ -1,4 +1,3 @@
-#.rst
 # FindMKL
 # -------
 #
@@ -10,53 +9,43 @@
 ## https://software.intel.com/en-us/articles/a-new-linking-model-single-dynamic-library-mkl_rt-since-intel-mkl-103
 
 # Variables controlling FindMKL behavior:
+#   MKL_STATIC:BOOL                 If ON, link against static MKL libraries
 #
-#   MKL_RT:BOOL             Controls whether to return the "runtime"-version of MKL
-#
-#   MKL_INTERFACE:STRING    Either LP64 or IPL64; only applicable for 64-bit
-#                           builds if MKL_RT=OFF
-#
-#   MKL_THREADING:STRING    Threading model used. Valid values are
-#                           OpenMP, Sequential and TBB; only applicable if
-#                           MKL_RT=OFF
-#
-#   MKL_STATIC:BOOL         If ON, link against static MKL libraries
-#
-#   MKL_F95ROOT:STRING      Optional root directory where to look for
-#                           Fortran 95 components (not needed on Windows)
+#   MKL_FORTRAN95_ROOT:STRING       Optional root directory where to look for
+#                                   Fortran 95 components (not needed on Windows)
 #
 # COMPONENTS (optional):
+#   RT                      Use Single dynamic library (default). Specifying
+#                           this option overrides all other interface/threading
+#                           components.
+#
+#   LP64                    Use LP64 interface (default if RT not set)
+#   ILP64                   Use ILP64 interface (only available on 64bit builts)
+#   SEQUENTIAL              Use non-threaded MKL (default if RT not set)
+#   OPENMP                  Use OpenMP threading layer
+#   TBB                     Use Intel Thread Building Blocks
+#
 #   BLAS95                  Fortran 95 interface to BLAS library
 #   LAPACK95                Fortran 95 interface to LAPACK library
 # Note that components other than BLAS95 and LAPACK95 on Windows are not
 # shipped as pre-compiled libraries with MKL. Thus, they will not be found
 # unless a prefix is specified where to locate them. This is done either via
-#   -DMKL_F95ROOT:STRING=/path/to/mkl95
-# or by setting the environment ariable F95ROOT.
-
-
-# if none of the MKL_* variables are defined, assume MKL_RT=ON by default
-if (NOT DEFINED MKL_RT AND NOT DEFINED MKL_INTERFACE AND NOT DEFINED MKL_THREADING)
-  set(MKL_RT TRUE)
-endif()
+#   -DMKL_FORTRAN95_ROOT:STRING=/path/to/mkl95
+# or by setting the environment variable MKL_FORTRAN95_ROOT or F95ROOT.
 
 include(FindPackageHandleStandardArgs)
 
-# determine target architecture
+# Determine target architecture
+# MKL_ARCH determined in which folders in MKL installation to look; this is
+# independent of the compiler used to create executables
 include(FindTargetArch)
 if (TARGET_ARCH_BITS EQUAL 64)
   set(IS_AMD64 TRUE)
+  set(MKL_ARCH intel64)
 else()
   set(IS_AMD64 FALSE)
+  set(MKL_ARCH ia32)
 endif()
-
-# MKL_ARCH determined in which folders in MKL installation to look; this is
-# independent of the compiler used to create executables
-if (IS_AMD64)
-    set(MKL_ARCH intel64)
-else ()
-    set(MKL_ARCH ia32)
-endif ()
 
 # Add file extensions for static linking
 if (MKL_STATIC)
@@ -84,10 +73,24 @@ else()
     set(MKL_ROOT_TRY "${MKL_ROOT}")
 endif()
 
-if (NOT MKL_F95ROOT)
-    # TRY to use environment variable F95ROOT which is mentioned in Intel's
-    # link advisor
-    set(MKL_F95ROOT "$ENV{F95ROOT}")
+# Root directory that contains Fortran 95 wrappers for BLAS, LAPACK, etc.
+if (DEFINED MKL_Fortran95_ROOT AND NOT DEFINED MKL_FORTRAN95_ROOT)
+    set(MKL_FORTRAN95_ROOT ${MKL_Fortran95_ROOT})
+endif ()
+
+if (NOT MKL_FORTRAN95_ROOT)
+    unset(_tmp)
+    if ($ENV{MKL_FORTRAN95_ROOT})
+        set(_tmp "$ENV{MKL_FORTRAN95_ROOT}")
+    elseif ($ENV{MKL_Fortran95_ROOT})
+        set(_tmp "$ENV{MKL_Fortran95_ROOT}")
+    elseif ($ENV{F95ROOT})
+        # TRY to use environment variable F95ROOT which is mentioned in Intel's
+        # link advisor
+        set(MKL_FORTRAN95_ROOT "$ENV{F95ROOT}")
+    endif()
+
+    set(MKL_FORTRAN95_ROOT "${_tmp}")
 endif ()
 
 # hard-coded directories to be searched
@@ -115,25 +118,97 @@ if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "PGI")
     set(IS_PGI TRUE)
 elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
-    set(IS_GFORTRAN TRUR)
+    set(IS_GFORTRAN TRUE)
 else ()
     message(FATAL_ERROR "Unsupported Fortran compiler")
 endif ()
 
 ################################################################################
-# MKL Interface
-# default interface: LP64 (only relevant for intel64 architecture)
-string(TOUPPER "${MKL_INTERFACE}" _INTERFACE)
-if (IS_AMD64 AND NOT _INTERFACE)
-    set(_INTERFACE LP64)
-else ()
-    # unset for 32-bit arch, we have no options here
-    unset(_INTERFACE)
-endif()
+# Default configuration
 
-# find suffix for interface library
+set(MKL_THREADING_TBB FALSE)
+set(MKL_THREADING_OPENMP FALSE)
+set(MKL_THREADING_SEQUENTIAL TRUE)
+
+set(MKL_INTERFACE_LP64 TRUE)
+set(MKL_INTERFACE_ILP64 FALSE)
+
+set(MKL_RT TRUE)
+
+################################################################################
+# Process required COMPONENTS
+
+# Components that are not part of the interface/threading specification will
+# be stored in _MKL_FIND_COMPONENTS for later processing
+unset(_MKL_FIND_COMPONENTS)
+foreach(_comp IN LISTS MKL_FIND_COMPONENTS)
+    string(TOUPPER "${_comp}" _name)
+    if (_name STREQUAL "TBB")
+        set(MLK_THREADING_TBB TRUE)
+        set(MKL_THREADING_OPENMP FALSE)
+        set(MKL_THREADING_SEQUENTIAL FALSE)
+        set(MKL_RT FALSE)
+        set(_MKL_FIND_COMPONENT_NAME_TBB ${_comp})
+    elseif (_name STREQUAL "OPENMP")
+        set(MLK_THREADING_TBB FALSE)
+        set(MKL_THREADING_OPENMP TRUE)
+        set(MKL_THREADING_SEQUENTIAL FALSE)
+        set(MKL_RT FALSE)
+        set(_MKL_FIND_COMPONENT_NAME_OPENMP ${_comp})
+    elseif (_name STREQUAL "SEQUENTIAL")
+        set(MLK_THREADING_TBB FALSE)
+        set(MKL_THREADING_OPENMP FALSE)
+        set(MKL_THREADING_SEQUENTIAL TRUE)
+        set(MKL_RT FALSE)
+        set(_MKL_FIND_COMPONENT_NAME_SEQUENTIAL ${_comp})
+    elseif (_name STREQUAL "LP64")
+        set(MKL_INTERFACE_LP64 TRUE)
+        set(MKL_INTERFACE_ILP64 FALSE)
+        set(MKL_RT FALSE)
+        set(_MKL_FIND_COMPONENT_NAME_LP64 ${_comp})
+    elseif (_name STREQUAL "ILP64")
+        if (IS_AMD64)
+            message(FATAL_ERROR "MKL interface ILP64 not supported for 32-bit builds")
+        endif()
+        set(MKL_INTERFACE_LP64 FALSE)
+        set(MKL_INTERFACE_ILP64 TRUE)
+        set(MKL_RT FALSE)
+        set(_MKL_FIND_COMPONENT_NAME_ILP64 ${_comp})
+    elseif (_name STREQUAL "RT")
+        set(MKL_RT TRUE)
+        set(_MKL_FIND_COMPONENT_NAME_RT ${_comp})
+    else()
+        list(APPEND _MKL_FIND_COMPONENTS "${_comp}")
+    endif()
+endforeach()
+
+# set some names to be used in variable names, depending on what was selected
+if (MKL_INTERFACE_ILP64)
+    set(MKL_INTERFACE_NAME ILP64)
+else ()
+    set(MKL_INTERFACE_NAME LP64)
+endif ()
+
+if (MKL_THREADING_TBB)
+    set(MKL_THREADING_NAME TBB)
+elseif (MKL_THREADING_OPENMP)
+    set(MKL_THREADING_NAME OPENMP)
+else ()
+    set(MKL_THREADING_NAME SEQUENTIAL)
+endif ()
+
+if (MKL_STATIC)
+    set(MKL_LINK_TYPE "STATIC")
+else ()
+    set(MKL_LINK_TYPE "DLL")
+endif ()
+
+
+################################################################################
+# Determine library name suffixes which depend on the compiler and MKL
+# interface layer used.
 if (IS_AMD64)
-    if (MKL_ILP64)
+    if (MKL_INTERFACE_ILP64)
         set(LP_SUFFIX "_ilp64")
     else ()
         set(LP_SUFFIX "_lp64")
@@ -163,83 +238,154 @@ endif ()
 set(_INTERFACE_SUFFIX "${COMP_SUFFIX}${LP_SUFFIX}")
 
 ################################################################################
+# Utility function to convert path to MKL library into MLK root directoy
+function(_mkl_root _path _var)
+    list(GET ${_path} 0 _tmp)
+    # make sure the library was found and does not contain -NOTFOUND
+    if (_tmp)
+        # strip the last path components from library, ie something such as
+        # /lib/intel64_win/mkl_rt.lib to obtain the MKL root directory
+        string(REGEX REPLACE "[/\\]lib[/\\]([^/\\]+[/\\])?[^/\\]+$" ""
+            _tmp2 "${_tmp}"
+        )
+    endif ()
+    set(${_var} "${_tmp2}" PARENT_SCOPE)
+endfunction()
+
+################################################################################
 # Locate MKL libraries
-set(MKL_LIBRARIES)
+unset(MKL_LIBRARY)
+unset(MKL_LIBRARIES)
+# libraries of MKL dependencies (such as TBB and OpenMP RTLs)
+unset(_MKL_DEP_LIBRARIES)
+
+macro(_set_component_vars _comp)
+    if (DEFINED MKL_${_comp}_FOUND)
+        set(MKL_${_MKL_FIND_COMPONENT_NAME_${_comp}}_FOUND ${MKL_${_comp}_FOUND})
+    endif ()
+    if (DEFINED MKL_${_comp}_LIBRARY)
+        set(MKL_${_MKL_FIND_COMPONENT_NAME_${_comp}}_LIBRARY ${MKL_${_comp}_LIBRARY})
+    endif ()
+endmacro()
 
 if (MKL_RT)
-  set(_NAMES mkl_rt)
-  find_library(MKL_RT_LIBRARY
-    NAMES ${_NAMES}
-    HINTS ${MKL_ROOT_TRY}
-    PATHS ${_MKL_PATHS}
-    PATH_SUFFIXES ${LIB_PATH_SUFFIXES}
-  )
+    set(_NAMES mkl_rt)
+    find_library(MKL_RT_LIBRARY
+        NAMES ${_NAMES}
+        HINTS ${MKL_ROOT_TRY}
+        PATHS ${_MKL_PATHS}
+        PATH_SUFFIXES ${LIB_PATH_SUFFIXES}
+    )
 
-  if (MKL_RT_LIBRARY)
-    list(APPEND MKL_LIBRARIES "${MKL_RT_LIBRARY}")
-  endif()
+    if (MKL_RT_LIBRARY)
+        set(MKL_RT_FOUND TRUE)
+    endif ()
+    list(APPEND MKL_LIBRARY "${MKL_RT_LIBRARY}")
+    _set_component_vars(RT)
 else (MKL_RT)
-    # No SDL interface requested, need specify interface/threading/core libraries
-    # explicitly
+    # No Single dynamic library interface requested, need specify
+    # interface/threading/core libraries explicitly
 
-    string(TOUPPER "${MKL_THREADING}" _THREADING)
-    if (NOT _THREADING)
-        set(_THREADING SEQUENTIAL)
+    # On Windows, in dynamic linking is requested the import library names
+    # have an _dll suffix;
+    unset(_WIN32_DLL_SUFFIX)
+    if (WIN32 AND NOT MKL_STATIC)
+        set(_WIN32_DLL_SUFFIX "_dll")
     endif()
 
     # MKL interface library
-    set(_INTERFACE_NAMES "mkl${_INTERFACE_SUFFIX}")
+    set(_INTERFACE_NAMES "mkl${_INTERFACE_SUFFIX}${_WIN32_DLL_SUFFIX}")
+    find_library(MKL_${MKL_INTERFACE_NAME}_${MKL_LINK_TYPE}_LIBRARY
+        NAMES ${_INTERFACE_NAMES}
+        HINTS ${MKL_ROOT_TRY}
+        PATHS ${_MKL_PATHS}
+        PATH_SUFFIXES ${LIB_PATH_SUFFIXES}
+    )
+    list(APPEND MKL_LIBRARY "${MKL_${MKL_INTERFACE_NAME}_${MKL_LINK_TYPE}_LIBRARY}")
 
-    # MKL core
-    set(_CORE_NAMES mkl_core)
+    if (MKL_${MKL_INTERFACE_NAME}_${MKL_LINK_TYPE}_LIBRARY)
+        set(MKL_${MKL_INTERFACE_NAME}_FOUND TRUE)
+    else ()
+        set(MKL_${MKL_INTERFACE_NAME}_FOUND FALSE)
+    endif ()
+    _set_component_vars(${MKL_INTERFACE_NAME})
 
-  # MKL threading library
-  if (_THREADING STREQUAL "SEQUENTIAL")
-    set(_THREADING_NAMES mkl_sequential)
-  elseif (_THREADING STREQUAL "OPENMP")
-    set(_THREADING_NAMES mkl_intel_thread)
-  elseif (_THREADING STREQUAL "TBB")
-    set(_THREADING_NAMES mkl_tbb_thread)
-  endif()
+    # MKL core library
+    set(_CORE_NAMES "mkl_core${_WIN32_DLL_SUFFIX}")
+    find_library(MKL_CORE_${MKL_LINK_TYPE}_LIBRARY
+        NAMES ${_CORE_NAMES}
+        HINTS ${MKL_ROOT_TRY}
+        PATHS ${_MKL_PATHS}
+        PATH_SUFFIXES ${LIB_PATH_SUFFIXES}
+    )
+    list(APPEND MKL_LIBRARY "${MKL_CORE_${MKL_LINK_TYPE}_LIBRARY}")
 
-  # On Windows, add _dll suffix if using static linking
-  if (WIN32 AND NOT MKL_STATIC)
-    foreach (_type INTERFACE CORE THREADING)
-      set(_TMP)
-      foreach(_name ${_${_type}_NAMES})
-        set(_TMP ${_TMP} ${_name}_dll)
-      endforeach()
-      set(_${_type}_NAMES ${_TMP})
-    endforeach()
-  endif()
+    # MKL threading library
+    if (MKL_THREADING_OPENMP)
+        set(_THREADING_NAMES "mkl_intel_thread${_WIN32_DLL_SUFFIX}")
+    elseif (MKL_THREADING_TBB)
+        set(_THREADING_NAMES "mkl_tbb_thread${_WIN32_DLL_SUFFIX}")
+    else ()
+        set(_THREADING_NAMES "mkl_sequential${_WIN32_DLL_SUFFIX}")
+    endif ()
 
-  foreach(_type INTERFACE CORE THREADING)
-    find_library(MKL_${_type}_LIBRARY
-      NAMES ${_${_type}_NAMES}
-      HINTS ${MKL_ROOT_TRY}
-      PATHS ${_MKL_PATHS}
-      PATH_SUFFIXES ${LIB_PATH_SUFFIXES}
+    find_library(MKL_${MKL_THREADING_NAME}_${MKL_LINK_TYPE}_LIBRARY
+        NAMES ${_THREADING_NAMES}
+        HINTS ${MKL_ROOT_TRY}
+        PATHS ${_MKL_PATHS}
+        PATH_SUFFIXES ${LIB_PATH_SUFFIXES}
     )
 
-    list(APPEND MKL_LIBRARIES "${MKL_${_type}_LIBRARY}")
-  endforeach()
+    list(APPEND MKL_LIBRARY "${MKL_${MKL_THREADING_NAME}_${MKL_LINK_TYPE}_LIBRARY}")
 
-  # append tbb library if TBB threading model requested
-  if (MKL_THREADING STREQUAL "TBB")
-    find_library(MKL_TBB_LIBRARY
-      NAMES tbb
-      HINTS ${MKL_ROOT_TRY}
-      PATHS ${_MKL_PATHS}
-      PATH_SUFFIXES lib/${MKL_ARCH}
-    )
+    if (MKL_${MKL_THREADING_NAME}_${MKL_LINK_TYPE}_LIBRARY)
+        set(MKL_${MKL_THREADING_NAME}_FOUND TRUE)
+    else ()
+        set(MKL_${MKL_THREADING_NAME}_FOUND FALSE)
+    endif ()
+    _set_component_vars(${MKL_THREADING_NAME})
 
-    list(APPEND MKL_LIBRARIES "${MKL_TBB_LIBRARY}")
-    list(APPEND MKL_THREADING_LIBRARY "${MKL_TBB_LIBRARY}")
-  endif()
+    if (MKL_THREADING_OPENMP)
+        if (WIN32)
+            set(_OMP_RTL_NAME libiomp5md)
+        else ()
+            set(_OMP_RTL_NAME iomp5)
+        endif()
+
+        _mkl_root(MKL_${MKL_THREADING_NAME}_${MKL_LINK_TYPE}_LIBRARY _tmp)
+        # strip trailing /mkl from _tmp
+        get_filename_component(_tmp2 "${_tmp}" DIRECTORY)
+        get_filename_component(_tmp3 "${MKL_ROOT_TRY}" DIRECTORY)
+
+        # append OpenMP runtime library
+        # Do not bother with static vs. dynamic, OpenMP RTL should probably
+        # be linked dynamically.
+        find_library(MKL_FIND_OPENMP_RTL
+            NAMES ${_OMP_RTL_NAME}
+            HINTS ${_tmp2} ${_tmp3}
+            PATHS /opt/intel
+            PATH_SUFFIXES lib/${MKL_ARCH}
+        )
+        list(APPEND _MKL_DEP_LIBRARIES "${MKL_FIND_OPENMP_RTL}")
+    elseif (MKL_THREADING_TBB)
+        # TODO: on linux, need to add -lstdc++ and other stuff.
+        # append tbb library if TBB threading model requested
+        find_library(MKL_FIND_TBB_RTL
+            NAMES tbb
+            HINTS ${MKL_ROOT_TRY}
+            PATHS ${_MKL_PATHS}
+            PATH_SUFFIXES lib/${MKL_ARCH}
+        )
+        list(APPEND _MKL_DEP_LIBRARIES "${MKL_FIND_TBB_RTL}")
+    endif()
 endif()
 
-find_package_handle_standard_args(MKL DEFAULT_MSG MKL_LIBRARIES)
-
+# Invoke here to set MKL_FOUND which is required for any further processing
+if (NOT DEFINED _MKL_DEP_LIBRARIES)
+    find_package_handle_standard_args(MKL DEFAULT_MSG MKL_LIBRARY)
+else ()
+    find_package_handle_standard_args(MKL DEFAULT_MSG MKL_LIBRARY _MKL_DEP_LIBRARIES)
+endif ()
 ################################################################################
 # Additional libraries
 
@@ -255,23 +401,15 @@ if (MKL_FOUND)
         set(LM "-lm")
     endif ()
 
-    list(APPEND MKL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${LM})
+    list(APPEND _MKL_DEP_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${LM})
 endif ()
 
 ################################################################################
 # MKL_ROOT variable
 # recover MKL_ROOT from library path found; use path of first library
-if (MKL_FOUND)
-    if (NOT MKL_ROOT AND MKL_LIBRARIES)
-        list(GET MKL_LIBRARIES 0 _tmp)
-        # make sure the library was found and does not contain -NOTFOUND
-        if (_tmp)
-            # string the last path components from library, ie something such as
-            # /lib/intel64_win/mkl_rt.lib to obtain the MKL root directory
-            string(REGEX REPLACE "[/\\]lib[/\\]([^/\\]+[/\\])?mkl_[^/\\]+$" ""
-                MKL_ROOT "${_tmp}"
-            )
-        endif ()
+if (MKL_FOUND AND NOT MKL_ROOT)
+    if (NOT MKL_ROOT AND MKL_LIBRARY)
+        _mkl_root(MKL_LIBRARY MKL_ROOT)
     endif ()
 
     # if MKL_ROOT still not found then give up
@@ -285,47 +423,47 @@ endif ()
 ################################################################################
 # INCLUDE DIRECTORIES
 
-set(MKL_INCLUDE_DIRS)
+unset(MKL_INCLUDE_DIRS)
 
 # base include/ directory in MKLROOT; this is not needed for Fortran without
 # using Fortran 95 wrappers, as then there are no MOD files to use
-get_property(_LANGUAGES_ GLOBAL PROPERTY ENABLED_LANGUAGES)
+# get_property(_LANGUAGES_ GLOBAL PROPERTY ENABLED_LANGUAGES)
 # CMake does not seem to match regex on word boundary, so process each language
 # in turn to avoid matching "RC"
-set(_HAS_C FALSE)
-foreach(_lang IN LISTS _LANGUAGES_)
-  if (NOT _HAS_C)
-    STRING(TOUPPER ${_lang} _lang)
-    if (_lang STREQUAL "C" OR _lang STREQUAL "CXX")
-      set(_HAS_C TRUE)
-    endif()
-  endif()
-endforeach()
+# set(_HAS_C FALSE)
+# set(_HAS_FORTRAN FALSE)
+# foreach(_lang IN LISTS _LANGUAGES_)
+#     string(TOUPPER ${_lang} _lang)
+#     if (_lang STREQUAL "C" OR _lang STREQUAL "CXX")
+#         set(_HAS_C TRUE)
+#     elseif (_lang STREQUAL "FORTRAN")
+#         set(_HAS_FORTRAN TRUE)
+#     endif()
+# endforeach()
 
-if (_HAS_C)
-  find_path(_MKL_INCLUDE_DIR
-    NAMES mkl.h
+# Look for include files that should be around if either C++ or Fortran
+# version of MKL was installed.
+find_path(MKL_INCLUDE_DIR
+    NAMES mkl.h mkl.fi
     HINTS ${MKL_ROOT}
     PATHS ${_MKL_PATHS}
     PATH_SUFFIXES include
-  )
-  mark_as_advanced(_MKL_INCLUDE_DIR)
+)
 
-  list(APPEND MKL_INCLUDE_DIRS "${_MKL_INCLUDE_DIR}")
-endif()
+list(APPEND MKL_INCLUDE_DIRS "${MKL_INCLUDE_DIR}")
+
 
 # macro to test whether compiling against Fortran 95 library works
-macro(mkl95_compile _var _file)
+macro(mkl95_compile _var _file _libs)
     message(STATUS "Checking whether linking to ${_comp} works")
     try_compile(${_var} "${CMAKE_BINARY_DIR}/tmp/FindMKL/"
         "${CMAKE_CURRENT_LIST_DIR}/${_file}"
-        LINK_LIBRARIES ${_TRY_LIBRARIES}
+        LINK_LIBRARIES ${${_libs}}
         OUTPUT_VARIABLE _result
         CMAKE_FLAGS
             "-DINCLUDE_DIRECTORIES=${MKL_${_comp}_INCLUDE_DIR}"
     )
     set(${_var} ${${_var}} CACHE INTERNAL "Whether MKL component works")
-    # message("*** try_compile result: ${_result}")
 endmacro()
 
 # Components: MKL_FIND_COMPONENTS contains both required and optional components
@@ -333,26 +471,31 @@ endmacro()
 # Other optional libraries (wrappers) are not distributed as binaries, not even
 # on Windows, and have to be compiled by the users
 if (MKL_FOUND)
-    foreach(_comp ${MKL_FIND_COMPONENTS})
-        string(TOLOWER "${_comp}" _name)
+    # Determine interface name component; empty for ia32 libraries.
+    if (IS_AMD64 AND MKL_INTERFACE_LP64)
+        set(_ifname "lp64")
+    elseif (IS_AMD64 AND MKL_INTERFACE_ILP64)
+        set(_ifname "ilp64")
+    endif()
+
+    foreach(_comp IN LISTS _MKL_FIND_COMPONENTS)
+        string(TOLOWER "${_comp}" _name_lower)
+        string(TOUPPER "${_comp}" _name)
+        # store user-given component name for use in _set_component_vars macro
+        set(_MKL_FIND_COMPONENT_NAME_${_name} ${_comp})
 
         # additional library names start with mkl_
-        set(_name mkl_${_name}${LP_SUFFIX})
-
-        find_library(MKL_${_comp}_LIBRARY
-            NAMES ${_name}
-            HINTS ${MKL_F95ROOT} ${MKL_ROOT}
+        find_library(MKL_${_name}_LIBRARY
+            NAMES mkl_${_name_lower}${LP_SUFFIX}
+            HINTS ${MKL_FORTRAN95_ROOT} ${MKL_ROOT}
             PATHS ${_MKL_PATHS}
             PATH_SUFFIXES ${LIB_PATH_SUFFIXES95}
         )
 
         # find include path for MOD files
-        string(TOLOWER ${_comp} _name)
-        string(TOLOWER ${_INTERFACE} _ifname)
-
-        find_path(MKL_${_comp}_INCLUDE_DIR
-            NAMES "${_name}.mod"
-            HINTS ${MKL_F95ROOT} ${MKL_ROOT}
+        find_path(MKL_${_name}_INCLUDE_DIR
+            NAMES "${_name_lower}.mod"
+            HINTS ${MKL_FORTRAN95_ROOT} ${MKL_ROOT}
             PATHS ${_MKL_PATHS}
             PATH_SUFFIXES
                 include/${MKL_ARCH}/${_ifname} include/${MKL_ARCH} include .
@@ -360,34 +503,36 @@ if (MKL_FOUND)
 
         # Check whether linking against Fortran 95 library works, if we have
         # not yet done so
-        if (MKL_${_comp}_LIBRARY AND MKL_${_comp}_INCLUDE_DIR)
-            if (NOT MKL_${_comp}_WORKS)
+        if (MKL_${_name}_LIBRARY AND MKL_${_name}_INCLUDE_DIR)
+            if (NOT MKL_${_name}_WORKS)
                 unset(_TRY_LIBRARIES)
-                list(APPEND _TRY_LIBRARIES ${MKL_${_comp}_LIBRARY})
-                list(APPEND _TRY_LIBRARIES ${MKL_LIBRARIES})
+                list(APPEND _TRY_LIBRARIES ${MKL_${_name}_LIBRARY})
+                list(APPEND _TRY_LIBRARIES ${MKL_LIBRARY})
+                list(APPEND _TRY_LIBRARIES ${_MKL_DEP_LIBRARIES})
 
-                if (${_name} STREQUAL "blas95")
-                    mkl95_compile(MKL_${_comp}_WORKS "blas95.f90")
-                elseif (${_name} STREQUAL "lapack95")
-                    mkl95_compile(MKL_${_comp}_WORKS "lapack95.f90")
+                if (${_name} STREQUAL "BLAS95")
+                    mkl95_compile(MKL_${_name}_WORKS "blas95.f90" _TRY_LIBRARIES)
+                elseif (${_name} STREQUAL "LAPACK95")
+                    mkl95_compile(MKL_${_name}_WORKS "lapack95.f90" _TRY_LIBRARIES)
                 else ()
-                    set(MKL_${_comp}_WORKS TRUE)
+                    set(MKL_${_name}_WORKS TRUE)
                 endif ()
             endif ()
 
             # FPHSA function expects the *_FOUND variables to be properly defined for
             # HANDLE_COMPONENTS to work
-            if (MKL_${_comp}_WORKS)
-                set(MKL_${_comp}_FOUND TRUE)
+            if (MKL_${_name}_WORKS)
+                set(MKL_${_name}_FOUND TRUE)
                 # optional libs should probably come first in link line
-                list(INSERT MKL_LIBRARIES 0 "${MKL_${_comp}_LIBRARY}")
-                list(INSERT MKL_INCLUDE_DIRS 0 "${MKL_${_comp}_INCLUDE_DIR}")
+                list(INSERT MKL_LIBRARY 0 "${MKL_${_name}_LIBRARY}")
+                list(INSERT MKL_INCLUDE_DIRS 0 "${MKL_${_name}_INCLUDE_DIR}")
             else()
-                set(MKL_${_comp}_FOUND FALSE)
+                set(MKL_${_name}_FOUND FALSE)
             endif ()
         else ()
-            set(MKL_${_comp}_FOUND FALSE)
+            set(MKL_${_name}_FOUND FALSE)
         endif()
+        _set_component_vars(${_name})
     endforeach()
 endif ()
 
@@ -397,6 +542,8 @@ if (NOT _HAS_C AND NOT MKL_FIND_COMPONENTS)
 else()
     set(_INCLUDE_DIR_VAR MKL_INCLUDE_DIRS)
 endif()
+
+set(MKL_LIBRARIES ${MKL_LIBRARY} ${_MKL_DEP_LIBRARIES})
 
 find_package_handle_standard_args(MKL
     REQUIRED_VARS MKL_ROOT MKL_LIBRARIES ${_INCLUDE_DIR_VAR}
