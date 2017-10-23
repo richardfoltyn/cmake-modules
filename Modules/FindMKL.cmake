@@ -490,6 +490,7 @@ if (MKL_FOUND)
             HINTS ${MKL_FORTRAN95_ROOT} ${MKL_ROOT}
             PATHS ${_MKL_PATHS}
             PATH_SUFFIXES ${LIB_PATH_SUFFIXES95}
+            NO_DEFAULT_PATH
         )
 
         # find include path for MOD files
@@ -499,6 +500,7 @@ if (MKL_FOUND)
             PATHS ${_MKL_PATHS}
             PATH_SUFFIXES
                 include/${MKL_ARCH}/${_ifname} include/${MKL_ARCH} include .
+            NO_DEFAULT_PATH
         )
 
         # Check whether linking against Fortran 95 library works, if we have
