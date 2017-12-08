@@ -337,6 +337,11 @@ else (MKL_RT)
     )
 
     list(APPEND MKL_LIBRARY "${MKL_${MKL_THREADING_NAME}_${MKL_LINK_TYPE}_LIBRARY}")
+    
+    if (UNIX)
+        list(INSERT MKL_LIBRARY 0 "-Wl,--start-group")
+        list(APPEND MKL_LIBRARY "-Wl,--end-group")
+    endif()
 
     if (MKL_${MKL_THREADING_NAME}_${MKL_LINK_TYPE}_LIBRARY)
         set(MKL_${MKL_THREADING_NAME}_FOUND TRUE)
