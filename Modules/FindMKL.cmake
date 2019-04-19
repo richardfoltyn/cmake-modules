@@ -281,6 +281,7 @@ if (MKL_RT)
         set(MKL_RT_FOUND TRUE)
     endif ()
     list(APPEND MKL_LIBRARY "${MKL_RT_LIBRARY}")
+    set(MKL_LIBRARY_NO_GROUP "${MKL_LIBRARY}")
     _set_component_vars(RT)
 else (MKL_RT)
     # No Single dynamic library interface requested, need specify
@@ -337,7 +338,8 @@ else (MKL_RT)
     )
 
     list(APPEND MKL_LIBRARY "${MKL_${MKL_THREADING_NAME}_${MKL_LINK_TYPE}_LIBRARY}")
-    
+
+    set(MKL_LIBRARY_NO_GROUP "${MKL_LIBRARY}")
     if (UNIX)
         list(INSERT MKL_LIBRARY 0 "-Wl,--start-group")
         list(APPEND MKL_LIBRARY "-Wl,--end-group")
@@ -391,6 +393,8 @@ if (NOT DEFINED _MKL_DEP_LIBRARIES)
 else ()
     find_package_handle_standard_args(MKL DEFAULT_MSG MKL_LIBRARY _MKL_DEP_LIBRARIES)
 endif ()
+
+
 ################################################################################
 # Additional libraries
 
@@ -413,8 +417,10 @@ endif ()
 # MKL_ROOT variable
 # recover MKL_ROOT from library path found; use path of first library
 if (MKL_FOUND AND NOT MKL_ROOT)
-    if (NOT MKL_ROOT AND MKL_LIBRARY)
-        _mkl_root(MKL_LIBRARY MKL_ROOT)
+    # Note: we need to reference MKL_LIBRARY_NO_GROUP, otherwise on Linux
+    # the first token might be -Wl,--start-group
+    if (NOT MKL_ROOT AND MKL_LIBRARY_NO_GROUP)
+        _mkl_root(MKL_LIBRARY_NO_GROUP MKL_ROOT)
     endif ()
 
     # if MKL_ROOT still not found then give up
