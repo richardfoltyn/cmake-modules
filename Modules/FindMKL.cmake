@@ -102,6 +102,7 @@ set(_MKL_PATHS
     /usr/local/intel/*/mkl
     /usr/local/*/composerxe
     /opt/intel/*/mkl
+    /opt/intel/oneapi/mkl/latest/
 )
 
 # suffixes for find_library; use platform-specific lib*/ directory if available
