@@ -113,10 +113,10 @@ foreach (_comp IN LISTS MKL95_COMPONENTS)
     # add additional source files for each component, and component-specifc
     # module files
     if (${_comp} STREQUAL "blas95")
-        list(APPEND _files blas.f90)
+        list(APPEND _files mkl_blas.f90)
         list(APPEND _modules blas95 f95_precision)
     elseif (${_comp} STREQUAL "lapack95")
-        list(APPEND _files lapack.f90)
+        list(APPEND _files mkl_lapack.f90)
         list(APPEND _modules lapack95 f95_precision)
     endif ()
 
