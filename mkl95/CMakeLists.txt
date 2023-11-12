@@ -12,7 +12,7 @@
 #                           lib/ and include/
 #   MKL_ILP64               Build using ILP64 interface (for 64-bit targets)
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 
 project(build_mkl95 C Fortran)
 
