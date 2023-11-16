@@ -103,9 +103,20 @@ else ()
 endif ()
 
 foreach (_comp IN LISTS MKL95_COMPONENTS)
-    file(GLOB SOURCE_FILES LIST_DIRECTORIES false
-        "${MKL_ROOT}/interfaces/${_comp}/source/*.f90"
-    )
+    if (IS_DIRECTORY "${MKL_ROOT}/interfaces/${_comp}/source")
+        file(GLOB SOURCE_FILES LIST_DIRECTORIES false
+            "${MKL_ROOT}/interfaces/${_comp}/source/*.f90"
+        )
+    else ()
+        # oneAPI MKL 2024 and later
+        file(GLOB SOURCE_FILES LIST_DIRECTORIES false
+            "${MKL_ROOT}/share/mkl/interfaces/${_comp}/source/*.f90"
+        )
+    endif ()
+
+    if (NOT SOURCE_FILES) 
+        message(FATAL_ERROR "MKL interface source directory not found")
+    endif ()
 
     unset(_files)
     unset(_modules)
