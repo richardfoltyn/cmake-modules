@@ -26,9 +26,10 @@ on Linux, as on Windows `gfortran` is not supported by MKL.
 The following steps are required to build the module files:
 
 ```bash
-GCC_VERSION=11
-MKL_ROOT=/opt/intel/oneapi/mkl/latest
-MKL_VERSION=2023
+GCC_VERSION=12
+MKL_VERSION=2024.0
+
+MKL_ROOT=/opt/intel/oneapi/mkl/${MKL_VERSION}
 INSTALL_PREFIX="${HOME}/.local/share/mkl/${MKL_VERSION}/gnu/${GCC_VERSION}/"
 SRC_DIR="${HOME}/repos/cmake-modules/mkl95"
 
