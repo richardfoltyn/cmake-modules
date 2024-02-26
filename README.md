@@ -1,6 +1,6 @@
-# Custom modules for cmake #
+# Custom modules for CMake #
 
-This repository contains CMake files for common tasks required to build
+This repository contains [CMake](https://cmake.org/) files for common tasks required to build
 Fortran programs, e.g.,
 - `FindMKL` to locate [Intel's Math Kernel Library (MKL)](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html)
 - `mkl95` to build the Fortran 95 interfaces for MKL's BLAS and LAPACK
