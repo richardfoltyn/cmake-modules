@@ -2,3 +2,5 @@ build*/
 *~
 *.bak
 *.old
+*.vscode/
+*.code-workspace
