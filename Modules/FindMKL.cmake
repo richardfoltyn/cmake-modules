@@ -114,7 +114,7 @@ set(LIB_PATH_SUFFIXES lib/${MKL_ARCH} lib .)
 set(LIB_PATH_SUFFIXES95 ${_GNU_LIBDIR} ${LIB_PATH_SUFFIXES})
 
 # identify supported compiler
-if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+if (CMAKE_Fortran_COMPILER_ID MATCHES "Intel(LLVM)?")
     set(IS_INTEL TRUE)
 elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "PGI")
     set(IS_PGI TRUE)
