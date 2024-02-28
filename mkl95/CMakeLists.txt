@@ -21,7 +21,9 @@ project(build_mkl95 C Fortran)
 option(ARCH_INSTALL_DIRS "Create architecture/interface-specific subdirectories" ON)
 option(MKL_ILP64 "Use ILP64 interface (only on 64-bit platforms)" OFF)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../Modules")
+# Insert at the beginning as Intel oneMKL now ships with cmake files which
+# are installed in system paths (but broken for gfortran ATM)
+list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/../Modules")
 find_package(MKL REQUIRED)
 include(FindTargetArch)
 
