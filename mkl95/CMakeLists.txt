@@ -61,16 +61,24 @@ endif()
 set(CMAKE_Fortran_MODULE_PATH "${CMAKE_BINARY_DIR}/include")
 
 # installation tree structure
-if (UNIX)
-    include(GNUInstallDirs)
-endif ()
+# store values in tempoprary variables, will be overwritten by GNUInstallDirs
+set(_INSTALL_LIBDIR "${CMAKE_INSTALL_LIBDIR}")
+set(_INSTALL_INCLUDEDDIR "${CMAKE_INSTALL_INCLUDEDIR}")
 
-if (NOT CMAKE_INSTALL_LIBDIR)
+include(GNUInstallDirs)
+
+# fill in any missing values
+if (_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR "${_INSTALL_LIBDIR}")
+elseif (NOT CMAKE_INSTALL_LIBDIR)
     set(CMAKE_INSTALL_LIBDIR lib)
-endif ()
-if (NOT CMAKE_INSTALL_INCLUDEDIR)
+endif()
+
+if (_INSTALL_INCLUDEDDIR)
+    set(CMAKE_INSTALL_INCLUDEDIR "${_INSTALL_INCLUDEDDIR}")
+elseif (NOT CMAKE_INSTALL_INCLUDEDIR)
     set(CMAKE_INSTALL_INCLUDEDIR include)
-endif ()
+endif()
 
 if (ARCH_INSTALL_DIRS)
     set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_LIBDIR}/${MKL95_LIBRARY_PREFIX}")
