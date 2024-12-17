@@ -34,8 +34,8 @@ The following steps are required to build the module files and may need to
 be adapted to your environment:
 
 ```bash
-GCC_VERSION=12
-MKL_VERSION=2024.0
+GCC_VERSION=14
+MKL_VERSION=2024.2
 
 MKL_ROOT=/opt/intel/oneapi/mkl/${MKL_VERSION}
 INSTALL_PREFIX="${HOME}/.local/share/mkl/${MKL_VERSION}/gnu/${GCC_VERSION}/"
@@ -45,15 +45,28 @@ BUILD_DIR="$HOME/build/gnu/${GCC_VERSION}/mkl95-${MKL_VERSION}"
 
 mkdir -p "${BUILD_DIR}" || exit
 cd "${BUILD_DIR}"
-
+```
+On Ubuntu, run
+```bash
 CC=gcc-${GCC_VERSION} FC=gfortran-${GCC_VERSION} \
 cmake -DMKL_ROOT="${MKL_ROOT}" \
     -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
     "${SRC_DIR}"
 ```
+Fedora does not provide multiple versions of GCC in its repositories, so there 
+the default compilers should be used:
+```bash
+cmake -DMKL_ROOT="${MKL_ROOT}" \
+    -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+    "${SRC_DIR}"
+
+```
+
+
+
 
 To compile and install the modules, run
 ```bash
-cmake --build .
+cmake --build . -j 32
 cmake --install .
 ```
