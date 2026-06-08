@@ -10,19 +10,38 @@ such as `gfortran`.
 
 ## Required packages
 
-At least the MKL components of Intel oneAPI needs to be installed:
+At least the MKL runtime and development components of Intel oneAPI need to be installed.
 
+### Ubuntu
+
+#### Bash
 ```bash
 MKL_VERSION="202x.y.z"
-sudo apt install -V intel-oneapi-mkl-${MKL_VERSION}
+sudo apt install -V intel-oneapi-mkl-$MKL_VERSION \
+    intel-oneapi-mkl-devel-$MKL_VERSION
 ```
 
-In addition, on Linux (Ubuntu) some of the MKL development packages may need to \
-be installed to provide the necessary Fortran source files (this step can be skipped
-if the entire set of MKL packages was installed).
+#### Fish
+```fish
+set MKL_VERSION "202x.y.z"
+sudo apt install -V intel-oneapi-mkl-$MKL_VERSION \
+    intel-oneapi-mkl-devel-$MKL_VERSION
+```
 
+### Fedora
+
+#### Bash
 ```bash
-sudo apt install -V intel-oneapi-mkl-common-devel-${MKL_VERSION}
+MKL_VERSION="202x.y.z"
+sudo dnf install intel-oneapi-mkl-$MKL_VERSION \
+    intel-oneapi-mkl-devel-$MKL_VERSION
+```
+
+#### Fish
+```fish
+set MKL_VERSION "202x.y.z"
+sudo dnf install intel-oneapi-mkl-$MKL_VERSION \
+    intel-oneapi-mkl-devel-$MKL_VERSION
 ```
 
 ## Installation
@@ -33,9 +52,12 @@ on Linux, as on Windows `gfortran` is not supported by MKL.
 The following steps are required to build the module files and may need to 
 be adapted to your environment:
 
+### Environment Setup
+
+#### Bash
 ```bash
-GCC_VERSION=14
-MKL_VERSION=2024.2
+GCC_VERSION=16
+MKL_VERSION=2026.0
 
 MKL_ROOT=/opt/intel/oneapi/mkl/${MKL_VERSION}
 INSTALL_PREFIX="${HOME}/.local/share/mkl/${MKL_VERSION}/gnu/${GCC_VERSION}/"
@@ -46,24 +68,62 @@ BUILD_DIR="$HOME/build/gnu/${GCC_VERSION}/mkl95-${MKL_VERSION}"
 mkdir -p "${BUILD_DIR}" || exit
 cd "${BUILD_DIR}"
 ```
-On Ubuntu, run
+
+#### Fish
+```fish
+set GCC_VERSION 16
+set MKL_VERSION 2026.0
+
+set MKL_ROOT /opt/intel/oneapi/mkl/$MKL_VERSION
+set INSTALL_PREFIX $HOME/.local/share/mkl/$MKL_VERSION/gnu/$GCC_VERSION/
+set SRC_DIR $HOME/repos/cmake-modules/mkl95
+
+set BUILD_DIR $HOME/build/gnu/$GCC_VERSION/mkl95-$MKL_VERSION
+
+mkdir -p $BUILD_DIR; or exit
+cd $BUILD_DIR
+```
+
+### Ubuntu
+
+Specify the compilers explicitly:
+
+#### Bash
 ```bash
 CC=gcc-${GCC_VERSION} FC=gfortran-${GCC_VERSION} \
 cmake -DMKL_ROOT="${MKL_ROOT}" \
     -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
     "${SRC_DIR}"
 ```
+
+#### Fish
+```fish
+env CC=gcc-$GCC_VERSION FC=gfortran-$GCC_VERSION \
+cmake -DMKL_ROOT="$MKL_ROOT" \
+    -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
+    "$SRC_DIR"
+```
+
+### Fedora
+
 Fedora does not provide multiple versions of GCC in its repositories, so there 
-the default compilers should be used:
+the default compilers should be used.
+
+#### Bash
 ```bash
 cmake -DMKL_ROOT="${MKL_ROOT}" \
     -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
     "${SRC_DIR}"
-
 ```
 
+#### Fish
+```fish
+cmake -DMKL_ROOT="$MKL_ROOT" \
+    -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
+    "$SRC_DIR"
+```
 
-
+### Build & Install
 
 To compile and install the modules, run
 ```bash
