@@ -10,38 +10,32 @@ such as `gfortran`.
 
 ## Required packages
 
-At least the MKL runtime and development components of Intel oneAPI need to be installed.
+The MKL runtime, development files and classic Fortran interface sources
+from Intel oneAPI are required. On Fedora, the versioned core-devel and
+classic-include packages provide these without the additional compiler and
+SYCL dependencies of the full MKL development bundle.
 
 ### Ubuntu
 
-#### Bash
-```bash
-MKL_VERSION="202x.y.z"
-sudo apt install -V intel-oneapi-mkl-$MKL_VERSION \
-    intel-oneapi-mkl-devel-$MKL_VERSION
-```
-
-#### Fish
-```fish
-set MKL_VERSION "202x.y.z"
-sudo apt install -V intel-oneapi-mkl-$MKL_VERSION \
-    intel-oneapi-mkl-devel-$MKL_VERSION
-```
+Check the package names and availability in the configured Intel oneAPI
+APT repository before installing MKL. The examples below assume the MKL
+runtime, development files and classic interface sources are already present
+at `${MKL_ROOT}`.
 
 ### Fedora
 
 #### Bash
 ```bash
-MKL_VERSION="202x.y.z"
-sudo dnf install intel-oneapi-mkl-$MKL_VERSION \
-    intel-oneapi-mkl-devel-$MKL_VERSION
+MKL_VERSION=2026.1
+sudo dnf install "intel-oneapi-mkl-core-devel-${MKL_VERSION}" \
+    "intel-oneapi-mkl-classic-include-${MKL_VERSION}"
 ```
 
 #### Fish
 ```fish
-set MKL_VERSION "202x.y.z"
-sudo dnf install intel-oneapi-mkl-$MKL_VERSION \
-    intel-oneapi-mkl-devel-$MKL_VERSION
+set MKL_VERSION 2026.1
+sudo dnf install intel-oneapi-mkl-core-devel-$MKL_VERSION \
+    intel-oneapi-mkl-classic-include-$MKL_VERSION
 ```
 
 ## Installation
@@ -57,7 +51,7 @@ be adapted to your environment:
 #### Bash
 ```bash
 GCC_VERSION=16
-MKL_VERSION=2026.0
+MKL_VERSION=2026.1
 
 MKL_ROOT=/opt/intel/oneapi/mkl/${MKL_VERSION}
 INSTALL_PREFIX="${HOME}/.local/share/mkl/${MKL_VERSION}/gnu/${GCC_VERSION}/"
@@ -72,7 +66,7 @@ cd "${BUILD_DIR}"
 #### Fish
 ```fish
 set GCC_VERSION 16
-set MKL_VERSION 2026.0
+set MKL_VERSION 2026.1
 
 set MKL_ROOT /opt/intel/oneapi/mkl/$MKL_VERSION
 set INSTALL_PREFIX $HOME/.local/share/mkl/$MKL_VERSION/gnu/$GCC_VERSION/
